@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="window_background">#FFFFFF</color>
+    <color name="indicator">#846CA8</color>
+    <color name="indicator_30">#4D846CA8</color>
+    <color name="search_box">#1A846CA8</color>
+    <color name="list_item_bg_color">#66846CA8</color>
+    <color name="primary_color">#846CA8</color>
+</resources>
