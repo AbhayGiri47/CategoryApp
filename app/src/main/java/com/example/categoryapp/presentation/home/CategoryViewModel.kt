@@ -1,4 +1,4 @@
-package com.example.categoryapp.presentation
+package com.example.categoryapp.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,11 +11,10 @@ import com.example.categoryapp.domain.model.CategoryBaseUseCase
 import com.example.categoryapp.domain.model.CategoryListRequest
 import com.example.categoryapp.domain.model.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,15 +30,19 @@ class CategoryViewModel @Inject constructor(
     private val _categoryImage = MutableStateFlow<List<Category>>(emptyList())
     val categoryImage get() = _categoryImage.asStateFlow()
 
-    private val _categoryList = MutableStateFlow<List<CategoryList>?>(null)
+    private val _categoryList = MutableStateFlow<List<CategoryList>>(emptyList())
     val categoryList get() = _categoryList.asStateFlow()
 
     private val _categoryAnalysis =
         MutableStateFlow<Resource<CategoryAnalysis>>(Resource.loading())
     val categoryAnalysis get() = _categoryAnalysis.asStateFlow()
 
-    private val _showBottomSheet = MutableSharedFlow<Boolean>()
-    val showBottomSheet get() = _showBottomSheet.asSharedFlow()
+    private val _showBottomSheet = MutableStateFlow(false)
+    val showBottomSheet get() = _showBottomSheet.asStateFlow()
+
+    private val _categoryListLoading = MutableStateFlow(true)
+     val categoryListLoading get() = _categoryListLoading.asStateFlow()
+
 
     private var currentCategoryForDisplay = -1
 
@@ -58,7 +61,7 @@ class CategoryViewModel @Inject constructor(
         onSearchTriggered()
     }
 
-    private fun onSearchTriggered() {
+    fun onSearchTriggered() {
         getCategoryList()
     }
 
@@ -72,13 +75,17 @@ class CategoryViewModel @Inject constructor(
         if (currentCategoryForDisplay < 0 || categoryImage.value.isEmpty()) {
             return@launch
         }
-        val catalogType = categoryImage.value[currentCategoryForDisplay].type
+        val categoryType = categoryImage.value[currentCategoryForDisplay].type
+
         categoryBaseUseCase.getCategoryListUseCase.getCategoryList(
             CategoryListRequest(
-                catalogType,
+                categoryType,
                 searchQuery.value
             )
-        ).collect {
+        ).onStart {
+            _categoryListLoading.emit(true)
+        }.collect {
+            _categoryListLoading.emit(false)
             _categoryList.emit(it)
         }
     }
@@ -86,6 +93,10 @@ class CategoryViewModel @Inject constructor(
     fun showBottomSheet() = viewModelScope.launch(dispatcher.io) {
         _showBottomSheet.emit(true)
         startCategoryAnalysis()
+    }
+
+    fun hideBottomSheet() = viewModelScope.launch(dispatcher.io) {
+        _showBottomSheet.emit(false)
     }
 
     private fun startCategoryAnalysis() = viewModelScope.launch(dispatcher.computation) {
@@ -101,4 +112,5 @@ class CategoryViewModel @Inject constructor(
             _categoryAnalysis.emit(Resource.success(it))
         }
     }
+
 }
